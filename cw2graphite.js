@@ -2,9 +2,19 @@ var dateFormat = require('dateformat');
 require('./lib/date');
 var global_options = require('./lib/options.js').readCmdOptions();
 
-var cloudwatch = require('aws2js').load('cloudwatch', global_options.credentials.accessKeyId, global_options.credentials.secretAccessKey);
+var awssum = require('awssum');
+var amazon = require('awssum-amazon');
+var CloudWatch = require('awssum-amazon-cloudwatch').CloudWatch;
+var cloudwatch = new CloudWatch({
+    'accessKeyId'     : global_options.credentials.accessKeyId,
+    'secretAccessKey' : global_options.credentials.secretAccessKey,
+    'region'          : global_options.metrics_config.region
+});
 
-cloudwatch.setRegion(global_options.metrics_config.region);
+// var cloudwatch = require('aws2js').load('cloudwatch', global_options.credentials.accessKeyId, global_options.credentials.secretAccessKey);
+//
+// cloudwatch.setRegion(global_options.metrics_config.region);
+
 var interval = 11;
 
 var metrics = global_options.metrics_config.metrics
@@ -52,7 +62,7 @@ function getOneStat(metric) {
 	metric.name = metric.name.toLowerCase()
 
 	// console.log(metric);
-	cloudwatch.request('GetMetricStatistics', options, function(error, response) {
+	cloudwatch.GetMetricStatistics(options, function(error, response) {
 		if(error) {
 			console.error("ERROR ! ",error);
 
