@@ -11,11 +11,7 @@ var cloudwatch = new CloudWatch({
     'region'          : global_options.metrics_config.region
 });
 
-// var cloudwatch = require('aws2js').load('cloudwatch', global_options.credentials.accessKeyId, global_options.credentials.secretAccessKey);
-//
-// cloudwatch.setRegion(global_options.metrics_config.region);
-
-var interval = 11;
+var interval = global_options.metrics_config.interval_minutes;
 
 var metrics = global_options.metrics_config.metrics
 
@@ -30,20 +26,26 @@ function getOneStat(metric) {
 	var end_time = dateFormat(now, "isoUtcDateTime");
 	var start_time = dateFormat(then, "isoUtcDateTime");
 
-
+  var dimensions = [];
+  dimensions.push({
+    Name: metric["Dimensions.member.1.Name"],
+    Value: metric["Dimensions.member.1.Value"]
+  });
+  if (metric["Dimensions.member.2.Name"]) {
+    dimensions.push({
+      Name: metric["Dimensions.member.2.Name"],
+      Value: metric["Dimensions.member.2.Value"]
+    });
+  }
 	var options = {
 		Namespace: metric.Namespace,
 		MetricName: metric.MetricName,
 		Period: '60',
 		StartTime: start_time,
 		EndTime: end_time,
-		"Statistics.member.1": metric["Statistics.member.1"],
-		Unit: metric.Unit,
-		"Dimensions.member.1.Name": metric["Dimensions.member.1.Name"],
-		"Dimensions.member.1.Value": metric["Dimensions.member.1.Value"],
-		"Dimensions.member.2.Name": metric["Dimensions.member.2.Name"],
-		"Dimensions.member.2.Value": metric["Dimensions.member.2.Value"],
-
+		"Statistics": [metric["Statistics.member.1"]],
+		Unit: [metric.Unit],
+		Dimensions: dimensions
 	}
 
 	metric.name = (global_options.metrics_config.carbonNameSpacePrefix != undefined) ? global_options.metrics_config.carbonNameSpacePrefix + "." : "";
@@ -61,15 +63,14 @@ function getOneStat(metric) {
 
 	metric.name = metric.name.toLowerCase()
 
-	// console.log(metric);
 	cloudwatch.GetMetricStatistics(options, function(error, response) {
 		if(error) {
-			console.error("ERROR ! ",error);
+			console.error("ERROR ! ",JSON.stringify(error));
 
 		} else {
 
 
-			var memberObject = response.GetMetricStatisticsResult.Datapoints.member;
+			var memberObject = response.Body.GetMetricStatisticsResponse.GetMetricStatisticsResult.Datapoints.member;
 			if (memberObject != undefined) {
 
 				var memberObj;
