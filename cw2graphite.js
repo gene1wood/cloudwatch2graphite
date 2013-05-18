@@ -3,7 +3,8 @@ require('./lib/date');
 var global_options = require('./lib/options.js').readCmdOptions();
 
 // TODO put graphite IP into a config file
-var graphite = require('graphite').createClient('plaintext://10.148.25.134:2003/');
+var graphite = require('graphite');
+
 var awssum = require('awssum');
 var amazon = require('awssum-amazon');
 var CloudWatch = require('awssum-amazon-cloudwatch').CloudWatch;
@@ -66,6 +67,8 @@ function getOneStat(metric) {
 	metric.name = metric.name.toLowerCase()
 
 	cloudwatch.GetMetricStatistics(options, function(error, response) {
+
+
 		if(error) {
 			console.error("ERROR ! ",JSON.stringify(error));
 
@@ -92,8 +95,17 @@ function getOneStat(metric) {
 
         var m = {};
         m[metric.name] = metric.value;
-        // graphite package generates timestamp for you I think
-        graphite.write(m)
+        // TODO this is terrible. rather than have a separate queue of in-flight
+        // requests, or using graphite's multiple-metrics-at-once pickle protocol,
+        // we use plaintext and create/destroy a client for each individual metric, yuck.
+        // since we only do a few per minute, this will work temporarily.
+        // but must absolutely be fixed.
+        var client = graphite.createClient('plaintext://10.148.25.134:2003/');
+        client.write(m, metric.ts, function(err) {
+          if (err) console.log('ERROR! Failed to write to graphite server: ' + err);
+          client.end();
+        });
+
 				
 				console.log("%s %s %s", metric.name, metric.value, metric.ts);
 
