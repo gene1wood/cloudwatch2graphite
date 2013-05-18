@@ -90,8 +90,10 @@ function getOneStat(metric) {
 				metric.value = memberObj[metric["Statistics.member.1"]]
 				metric.ts = parseInt(new Date().getTime(memberObj.TimeStamp) / 1000);
 
+        var m = {};
+        m[metric.name] = metric.value;
         // graphite package generates timestamp for you I think
-        graphite.write({metric.name: metric.value}); 
+        graphite.write(m)
 				
 				console.log("%s %s %s", metric.name, metric.value, metric.ts);
 
