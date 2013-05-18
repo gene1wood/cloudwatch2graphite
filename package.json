@@ -8,7 +8,8 @@
     "awssum-amazon": "1.0.2",
     "awssum-amazon-cloudwatch": "1.0.0",
     "dateformat": "1.0.6-1.2.3",
-    "optparse": "1.0.4"
+    "optparse": "1.0.4",
+    "graphite": "0.0.6"
   },
   "maintainers": [
     {
@@ -28,7 +29,7 @@
   "engines": {
     "node": ">=0.8.0"
   },
-  "scripts": {  
+  "scripts": {
     "start": "node cw2graphite.js"
   }
 }

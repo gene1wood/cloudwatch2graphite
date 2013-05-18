@@ -2,6 +2,8 @@ var dateFormat = require('dateformat');
 require('./lib/date');
 var global_options = require('./lib/options.js').readCmdOptions();
 
+// TODO put graphite IP into a config file
+var graphite = require('graphite').createClient('plaintext://10.148.25.134:2003/');
 var awssum = require('awssum');
 var amazon = require('awssum-amazon');
 var CloudWatch = require('awssum-amazon-cloudwatch').CloudWatch;
@@ -87,6 +89,9 @@ function getOneStat(metric) {
 
 				metric.value = memberObj[metric["Statistics.member.1"]]
 				metric.ts = parseInt(new Date().getTime(memberObj.TimeStamp) / 1000);
+
+        // graphite package generates timestamp for you I think
+        graphite.write({metric.name: metric.value}); 
 				
 				console.log("%s %s %s", metric.name, metric.value, metric.ts);
 
