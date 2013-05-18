@@ -249,5 +249,5 @@
         }
     ],
     "region": "us-west-2",
-    "interval_minutes": 1440
+    "interval_minutes": 1
 }
