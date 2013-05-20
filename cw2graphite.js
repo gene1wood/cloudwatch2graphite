@@ -85,7 +85,8 @@ function getOneStat(metric) {
         // we use plaintext and create/destroy a client for each individual metric, yuck.
         // since we only do a few per minute, this will work temporarily.
         // but must absolutely be fixed.
-        var client = graphite.createClient('plaintext://10.148.25.134:2003/');
+        var g = global_options.graphite;
+        var client = graphite.createClient(g.protocol + '://' + g.host + ':' + g.port + '/');
         client.write(m, metric.ts, function(err) {
           if (err) console.log('ERROR! Failed to write to graphite server: ' + err);
           client.end();
