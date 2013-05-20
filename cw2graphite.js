@@ -1,6 +1,6 @@
 var dateFormat = require('dateformat');
-require('./lib/date');
-var global_options = require('./lib/options.js').readCmdOptions();
+require(__dirname + '/lib/date');
+var global_options = require(__dirname + '/lib/options.js').readCmdOptions();
 
 // TODO put graphite IP into a config file
 var graphite = require('graphite');
