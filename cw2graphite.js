@@ -55,6 +55,10 @@ function getOneStat(metric) {
 	metric.name += "." + metric.Unit;
 	metric.name = metric.name.toLowerCase()
 
+  // naively search-replace to convert AWS names to Graphite names
+  global_options.names.forEach(function(item) {
+    metric.name = metric.name.replace(item.aws_name, item.graphite_name)
+  });
 	cloudwatch.GetMetricStatistics(options, function(error, response) {
 		if (error) {
 			console.error("ERROR ! ",JSON.stringify(error));
