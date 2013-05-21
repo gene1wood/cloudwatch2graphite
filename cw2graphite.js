@@ -77,7 +77,7 @@ function getOneStat(metric) {
 					memberObj = memberObject[memberObject.length - 1];
 				}
 				metric.value = memberObj[metric["Statistics.member.1"]]
-				metric.ts = parseInt(new Date().getTime(memberObj.TimeStamp) / 1000);
+				metric.ts = parseInt(new Date().getTime(memberObj.TimeStamp));
         var m = {};
         m[metric.name] = metric.value;
         // TODO this is terrible. rather than have a separate queue of in-flight
