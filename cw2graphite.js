@@ -87,25 +87,25 @@ function getOneStat(metric) {
   global_options.names.forEach(function(item) {
     metric.name = metric.name.replace(item.aws_name, item.graphite_name)
   });
-	cloudwatch.GetMetricStatistics(options, function(error, response) {
-		if (error) {
-			console.error("ERROR ! ",JSON.stringify(error));
-		} else {
-			var memberObject = response.Body.GetMetricStatisticsResponse.GetMetricStatisticsResult.Datapoints.member;
-			if (memberObject != undefined) {
-				var memberObj;
-				if (memberObject.length === undefined) {
-					memberObj = memberObject; 
-				} else {
-					// samples might not be sorted in chronological order
-					memberObject.sort(function(m1,m2){
-						var d1 = new Date(m1.Timestamp), d2 = new Date(m2.Timestamp);
-						return d1 - d2
-					});
-					memberObj = memberObject[memberObject.length - 1];
-				}
-				metric.value = memberObj[metric["Statistics.member.1"]]
-				metric.ts = parseInt(new Date().getTime(memberObj.TimeStamp));
+  cloudwatch.GetMetricStatistics(options, function(error, response) {
+    if (error) {
+      console.error("ERROR ! ",JSON.stringify(error));
+    } else {
+      var memberObject = response.Body.GetMetricStatisticsResponse.GetMetricStatisticsResult.Datapoints.member;
+      if (memberObject != undefined) {
+        var memberObj;
+        if (memberObject.length === undefined) {
+          memberObj = memberObject;
+        } else {
+          // samples might not be sorted in chronological order
+          memberObject.sort(function(m1,m2){
+            var d1 = new Date(m1.Timestamp), d2 = new Date(m2.Timestamp);
+            return d1 - d2
+          });
+          memberObj = memberObject[memberObject.length - 1];
+        }
+        metric.value = memberObj[metric["Statistics.member.1"]]
+        metric.ts = parseInt(new Date().getTime(memberObj.TimeStamp));
         var m = {};
         m[metric.name] = metric.value;
         // TODO this is terrible. rather than have a separate queue of in-flight
@@ -119,17 +119,17 @@ function getOneStat(metric) {
           if (err) console.log('ERROR! Failed to write to graphite server: ' + err);
           client.end();
         });
-				console.log("%s %s %s", metric.name, metric.value, metric.ts);
-				if ((metric === undefined)||(metric.value === undefined)) {
-					console.dir(response);
-					console.dir(response.GetMetricStatisticsResult.Datapoints.member);
-					console.log("[1]")
-					console.dir(response.GetMetricStatisticsResult.Datapoints.member[1]);
-					console.log("length=" + response.GetMetricStatisticsResult.Datapoints.member.length);
-					console.log(typeof response.GetMetricStatisticsResult.Datapoints.member);
-				}
-			} //if(memberObject != undefined)
-		}
-	});
-}
+        console.log("%s %s %s", metric.name, metric.value, metric.ts);
+        if ((metric === undefined)||(metric.value === undefined)) {
+          console.dir(response);
+          console.dir(response.GetMetricStatisticsResult.Datapoints.member);
+          console.log("[1]")
+          console.dir(response.GetMetricStatisticsResult.Datapoints.member[1]);
+          console.log("length=" + response.GetMetricStatisticsResult.Datapoints.member.length);
+          console.log(typeof response.GetMetricStatisticsResult.Datapoints.member);
+        }
+      } //if(memberObject != undefined)
+    }
+  });
+  }
 }
