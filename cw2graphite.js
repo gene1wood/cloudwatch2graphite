@@ -22,9 +22,10 @@ imd.Get({Version: 'latest', Category: '/meta-data/iam/security-credentials/' }, 
   imd.Get({Version: 'latest', Category: '/meta-data/iam/security-credentials/' + role}, function(err, data) {
     // TODO use Q.then.then.fail instead of copy-pasted err handlers
     if (err) throw new Error('ERROR: Unable to obtain security credentials from IMD: ' + JSON.stringify(err));
-    securityCredentials.accessKeyId = data.Body.AccessKeyId;
-    securityCredentials.secretAccessKey = data.Body.SecretAccessKey;
-    securityCredentials.token = data.Body.Token;
+    var parsed = JSON.parse(data.Body);
+    securityCredentials.accessKeyId = parsed.AccessKeyId;
+    securityCredentials.secretAccessKey = parsed.SecretAccessKey;
+    securityCredentials.token = parsed.Token;
     // brittle method to obtain region: shave last char off of AZ.
     // example: 'us-west-2a' => 'us-west-2'.
     // no other way exists unless we insert that via chef.
