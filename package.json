@@ -9,7 +9,8 @@
     "awssum-amazon-cloudwatch": "1.0.0",
     "dateformat": "1.0.6-1.2.3",
     "optparse": "1.0.4",
-    "graphite": "0.0.6"
+    "graphite": "0.0.6",
+    "awssum-amazon-imd": "~1.0.0"
   },
   "maintainers": [
     {
