@@ -7,12 +7,37 @@ var graphite = require('graphite');
 
 var awssum = require('awssum');
 var amazon = require('awssum-amazon');
+var Imd = require('awssum-amazon-imd').Imd;
 var CloudWatch = require('awssum-amazon-cloudwatch').CloudWatch;
-var cloudwatch = new CloudWatch({
-    'accessKeyId'     : global_options.credentials.accessKeyId,
-    'secretAccessKey' : global_options.credentials.secretAccessKey,
-    'region'          : global_options.metrics_config.region
+
+// fetch IAM creds before going further. this lives in IMD, the
+// instance metadata.
+// TODO extract into a helper lib + upstream into awssum
+var imd = new Imd();
+var securityCredentials = {};
+imd.Get({Version: 'latest', Category: '/meta-data/iam/security-credentials/' }, function(err, data) {
+  if (err) throw new Error('ERROR: Unable to obtain security credentials from IMD: ' + JSON.stringify(err));
+  // example role: "identity"
+  var role = data.Body;
+  imd.Get({Version: 'latest', Category: '/meta-data/iam/security-credentials/' + role}, function(err, data) {
+    // TODO use Q.then.then.fail instead of copy-pasted err handlers
+    if (err) throw new Error('ERROR: Unable to obtain security credentials from IMD: ' + JSON.stringify(err));
+    securityCredentials.accessKeyId = data.Body.AccessKeyId;
+    securityCredentials.secretAccessKey = data.Body.SecretAccessKey;
+    securityCredentials.token = data.Body.Token;
+    // brittle method to obtain region: shave last char off of AZ.
+    // example: 'us-west-2a' => 'us-west-2'.
+    // no other way exists unless we insert that via chef.
+    // TODO consider a less brittle approach, maybe via JSON config file?
+    imd.Get({Version: 'latest', Category: '/meta-data/placement/availability-zone' }, function(err, data) {
+      // TODO use Q.then.then.fail instead of copy-pasted err handlers
+      if (err) throw new Error('ERROR: Unable to obtain security credentials from IMD: ' + JSON.stringify(err));
+      securityCredentials.region = data.Body.substr(0, data.Body.length-1)
+    });
+  });
 });
+
+var cloudwatch = new CloudWatch(securityCredentials);
 var interval = global_options.metrics_config.interval_minutes;
 var metrics = global_options.metrics_config.metrics
 for(index in metrics) {
