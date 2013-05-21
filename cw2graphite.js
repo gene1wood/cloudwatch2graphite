@@ -34,10 +34,12 @@ imd.Get({Version: 'latest', Category: '/meta-data/iam/security-credentials/' }, 
       // TODO use Q.then.then.fail instead of copy-pasted err handlers
       if (err) throw new Error('ERROR: Unable to obtain security credentials from IMD: ' + JSON.stringify(err));
       securityCredentials.region = data.Body.substr(0, data.Body.length-1)
+      sighFlowControl();
     });
   });
 });
 
+function sighFlowControl() {
 var cloudwatch = new CloudWatch(securityCredentials);
 var interval = global_options.metrics_config.interval_minutes;
 var metrics = global_options.metrics_config.metrics
@@ -129,4 +131,5 @@ function getOneStat(metric) {
 			} //if(memberObject != undefined)
 		}
 	});
+}
 }
