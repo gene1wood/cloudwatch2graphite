@@ -5,8 +5,6 @@ var global_options = require(__dirname + '/lib/options.js').readCmdOptions();
 // TODO put graphite IP into a config file
 var graphite = require('graphite');
 
-var awssum = require('awssum');
-var amazon = require('awssum-amazon');
 var CloudWatch = require('awssum-amazon-cloudwatch').CloudWatch;
 var getIAMCreds = require(__dirname + '/credentials.js');
 

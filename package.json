@@ -4,8 +4,6 @@
   "homepage": "https://github.com/edasque/cloudwatch2graphite",
   "version": "0.0.1",
   "dependencies": {
-    "awssum": "1.0.0-beta",
-    "awssum-amazon": "1.0.2",
     "awssum-amazon-cloudwatch": "1.0.0",
     "dateformat": "1.0.6-1.2.3",
     "optparse": "1.0.4",
