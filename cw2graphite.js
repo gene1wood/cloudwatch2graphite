@@ -9,35 +9,45 @@ var awssum = require('awssum');
 var amazon = require('awssum-amazon');
 var Imd = require('awssum-amazon-imd').Imd;
 var CloudWatch = require('awssum-amazon-cloudwatch').CloudWatch;
+var security_credentials = {};
 
-// fetch IAM creds before going further. this lives in IMD, the
-// instance metadata.
-// TODO extract into a helper lib + upstream into awssum
-var imd = new Imd();
-var securityCredentials = {};
-imd.Get({Version: 'latest', Category: '/meta-data/iam/security-credentials/' }, function(err, data) {
-  if (err) throw new Error('ERROR: Unable to obtain security credentials from IMD: ' + JSON.stringify(err));
-  // example role: "identity"
-  var role = data.Body;
-  imd.Get({Version: 'latest', Category: '/meta-data/iam/security-credentials/' + role}, function(err, data) {
-    // TODO use Q.then.then.fail instead of copy-pasted err handlers
+if (global_options.credentials) {
+ securityCredentials = {
+    accessKeyId: global_options.credentials.accessKeyId,
+    secretAccessKey: global_options.credentials.secretAccessKey,
+    region: global_options.metrics_config.region
+  };
+  sighFlowControl()
+} else {
+  // fetch IAM creds before going further. this lives in IMD, the
+  // instance metadata.
+  // TODO extract into a helper lib + upstream into awssum
+  var imd = new Imd();
+  imd.Get({Version: 'latest', Category: '/meta-data/iam/security-credentials/' }, function(err, data) {
     if (err) throw new Error('ERROR: Unable to obtain security credentials from IMD: ' + JSON.stringify(err));
-    var parsed = JSON.parse(data.Body);
-    securityCredentials.accessKeyId = parsed.AccessKeyId;
-    securityCredentials.secretAccessKey = parsed.SecretAccessKey;
-    securityCredentials.token = parsed.Token;
-    // brittle method to obtain region: shave last char off of AZ.
-    // example: 'us-west-2a' => 'us-west-2'.
-    // no other way exists unless we insert that via chef.
-    // TODO consider a less brittle approach, maybe via JSON config file?
-    imd.Get({Version: 'latest', Category: '/meta-data/placement/availability-zone' }, function(err, data) {
+    // example role: "identity"
+    var role = data.Body;
+    imd.Get({Version: 'latest', Category: '/meta-data/iam/security-credentials/' + role}, function(err, data) {
       // TODO use Q.then.then.fail instead of copy-pasted err handlers
       if (err) throw new Error('ERROR: Unable to obtain security credentials from IMD: ' + JSON.stringify(err));
-      securityCredentials.region = data.Body.substr(0, data.Body.length-1)
-      sighFlowControl();
+      var parsed = JSON.parse(data.Body);
+      securityCredentials.accessKeyId = parsed.AccessKeyId;
+      securityCredentials.secretAccessKey = parsed.SecretAccessKey;
+      securityCredentials.token = parsed.Token;
+      // brittle method to obtain region: shave last char off of AZ.
+      // example: 'us-west-2a' => 'us-west-2'.
+      // no other way exists unless we insert that via chef.
+      // TODO consider a less brittle approach, maybe via JSON config file?
+      imd.Get({Version: 'latest', Category: '/meta-data/placement/availability-zone' }, function(err, data) {
+        // TODO use Q.then.then.fail instead of copy-pasted err handlers
+        if (err) throw new Error('ERROR: Unable to obtain security credentials from IMD: ' + JSON.stringify(err));
+        securityCredentials.region = data.Body.substr(0, data.Body.length-1)
+        sighFlowControl();
+      });
     });
   });
-});
+}
+
 
 function sighFlowControl() {
 var cloudwatch = new CloudWatch(securityCredentials);
@@ -92,43 +102,43 @@ function getOneStat(metric) {
       console.error("ERROR ! ",JSON.stringify(error));
     } else {
       var datapoints = response.Body.GetMetricStatisticsResponse.GetMetricStatisticsResult.Datapoints.member;
-      if (datapoints != undefined) {
-        var memberObj;
-        if (datapoints.length === undefined) {
-          memberObj = datapoints;
-        } else {
-          // samples might not be sorted in chronological order
-          datapoints.sort(function(m1,m2){
-            var d1 = new Date(m1.Timestamp), d2 = new Date(m2.Timestamp);
-            return d1 - d2
-          });
-          memberObj = datapoints[datapoints.length - 1];
-        }
-        metric.value = memberObj[metric["Statistics.member.1"]]
-        metric.ts = parseInt(new Date().getTime(memberObj.TimeStamp));
-        var m = {};
-        m[metric.name] = metric.value;
-        // TODO this is terrible. rather than have a separate queue of in-flight
-        // requests, or using graphite's multiple-metrics-at-once pickle protocol,
-        // we use plaintext and create/destroy a client for each individual metric, yuck.
-        // since we only do a few per minute, this will work temporarily.
-        // but must absolutely be fixed.
-        var g = global_options.graphite;
-        var client = graphite.createClient(g.protocol + '://' + g.host + ':' + g.port + '/');
-        client.write(m, metric.ts, function(err) {
-          if (err) console.log('ERROR! Failed to write to graphite server: ' + err);
-          client.end();
+      var metricData;
+      if (datapoints && datapoints.length) {
+        // samples might not be sorted in chronological order
+        datapoints.sort(function(m1,m2){
+          var d1 = new Date(m1.Timestamp), d2 = new Date(m2.Timestamp);
+          return d1 - d2
         });
-        console.log("%s %s %s", metric.name, metric.value, metric.ts);
-        if ((metric === undefined)||(metric.value === undefined)) {
-          console.dir(response);
-          console.dir(response.GetMetricStatisticsResult.Datapoints.member);
-          console.log("[1]")
-          console.dir(response.GetMetricStatisticsResult.Datapoints.member[1]);
-          console.log("length=" + response.GetMetricStatisticsResult.Datapoints.member.length);
-          console.log(typeof response.GetMetricStatisticsResult.Datapoints.member);
-        }
-      } //if(datapoints != undefined)
+        metricData = datapoints[datapoints.length - 1];
+      } else if (datapoints) {
+        // singleton case
+        metricData = datapoints;
+      }
+      metric.value = metricData ? metricData[metric["Statistics.member.1"]] : 0;
+      metric.ts = metricData ? parseInt(new Date().getTime(metricData.Timestamp))
+                              : parseInt(new Date(new Date().toUTCString()).getTime());
+      var m = {};
+      m[metric.name] = metric.value;
+      // TODO this is terrible. rather than have a separate queue of in-flight
+      // requests, or using graphite's multiple-metrics-at-once pickle protocol,
+      // we use plaintext and create/destroy a client for each individual metric, yuck.
+      // since we only do a few per minute, this will work temporarily.
+      // but must absolutely be fixed.
+      var g = global_options.graphite;
+      var client = graphite.createClient(g.protocol + '://' + g.host + ':' + g.port + '/');
+      client.write(m, metric.ts, function(err) {
+        if (err) console.log('ERROR! Failed to write to graphite server: ' + err);
+        client.end();
+      });
+      console.log("%s %s %s", metric.name, metric.value, metric.ts);
+      if ((metric === undefined)||(metric.value === undefined)) {
+        console.dir(response);
+        console.dir(response.GetMetricStatisticsResult.Datapoints.member);
+        console.log("[1]")
+        console.dir(response.GetMetricStatisticsResult.Datapoints.member[1]);
+        console.log("length=" + response.GetMetricStatisticsResult.Datapoints.member.length);
+        console.log(typeof response.GetMetricStatisticsResult.Datapoints.member);
+      }
     }
   });
   }
