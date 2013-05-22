@@ -19,7 +19,10 @@ if (global_options.credentials) {
   };
   sighFlowControl()
 } else {
-  getIAMCreds(sighFlowControl);
+  getIAMCreds(function(err, data) {
+    securityCredentials = data;
+    sighFlowControl();
+  });
 }
 
 function sighFlowControl() {
