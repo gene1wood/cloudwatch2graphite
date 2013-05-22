@@ -7,9 +7,9 @@ var graphite = require('graphite');
 
 var awssum = require('awssum');
 var amazon = require('awssum-amazon');
-var Imd = require('awssum-amazon-imd').Imd;
 var CloudWatch = require('awssum-amazon-cloudwatch').CloudWatch;
 var securityCredentials = {};
+var getIAMCreds = require(__dirname + '/credentials.js');
 
 if (global_options.credentials) {
  securityCredentials = {
@@ -19,35 +19,8 @@ if (global_options.credentials) {
   };
   sighFlowControl()
 } else {
-  // fetch IAM creds before going further. this lives in IMD, the
-  // instance metadata.
-  // TODO extract into a helper lib + upstream into awssum
-  var imd = new Imd();
-  imd.Get({Version: 'latest', Category: '/meta-data/iam/security-credentials/' }, function(err, data) {
-    if (err) throw new Error('ERROR: Unable to obtain security credentials from IMD: ' + JSON.stringify(err));
-    // example role: "identity"
-    var role = data.Body;
-    imd.Get({Version: 'latest', Category: '/meta-data/iam/security-credentials/' + role}, function(err, data) {
-      // TODO use Q.then.then.fail instead of copy-pasted err handlers
-      if (err) throw new Error('ERROR: Unable to obtain security credentials from IMD: ' + JSON.stringify(err));
-      var parsed = JSON.parse(data.Body);
-      securityCredentials.accessKeyId = parsed.AccessKeyId;
-      securityCredentials.secretAccessKey = parsed.SecretAccessKey;
-      securityCredentials.token = parsed.Token;
-      // brittle method to obtain region: shave last char off of AZ.
-      // example: 'us-west-2a' => 'us-west-2'.
-      // no other way exists unless we insert that via chef.
-      // TODO consider a less brittle approach, maybe via JSON config file?
-      imd.Get({Version: 'latest', Category: '/meta-data/placement/availability-zone' }, function(err, data) {
-        // TODO use Q.then.then.fail instead of copy-pasted err handlers
-        if (err) throw new Error('ERROR: Unable to obtain security credentials from IMD: ' + JSON.stringify(err));
-        securityCredentials.region = data.Body.substr(0, data.Body.length-1)
-        sighFlowControl();
-      });
-    });
-  });
+  getIAMCreds(sighFlowControl);
 }
-
 
 function sighFlowControl() {
 var cloudwatch = new CloudWatch(securityCredentials);
