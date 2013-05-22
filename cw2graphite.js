@@ -91,18 +91,18 @@ function getOneStat(metric) {
     if (error) {
       console.error("ERROR ! ",JSON.stringify(error));
     } else {
-      var memberObject = response.Body.GetMetricStatisticsResponse.GetMetricStatisticsResult.Datapoints.member;
-      if (memberObject != undefined) {
+      var datapoints = response.Body.GetMetricStatisticsResponse.GetMetricStatisticsResult.Datapoints.member;
+      if (datapoints != undefined) {
         var memberObj;
-        if (memberObject.length === undefined) {
-          memberObj = memberObject;
+        if (datapoints.length === undefined) {
+          memberObj = datapoints;
         } else {
           // samples might not be sorted in chronological order
-          memberObject.sort(function(m1,m2){
+          datapoints.sort(function(m1,m2){
             var d1 = new Date(m1.Timestamp), d2 = new Date(m2.Timestamp);
             return d1 - d2
           });
-          memberObj = memberObject[memberObject.length - 1];
+          memberObj = datapoints[datapoints.length - 1];
         }
         metric.value = memberObj[metric["Statistics.member.1"]]
         metric.ts = parseInt(new Date().getTime(memberObj.TimeStamp));
@@ -128,7 +128,7 @@ function getOneStat(metric) {
           console.log("length=" + response.GetMetricStatisticsResult.Datapoints.member.length);
           console.log(typeof response.GetMetricStatisticsResult.Datapoints.member);
         }
-      } //if(memberObject != undefined)
+      } //if(datapoints != undefined)
     }
   });
   }
