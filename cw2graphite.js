@@ -105,14 +105,6 @@ function getOneStat(metric) {
         client.end();
       });
       console.log("%s %s %s", metric.name, metric.value, metric.ts);
-      if ((metric === undefined)||(metric.value === undefined)) {
-        console.dir(response);
-        console.dir(response.GetMetricStatisticsResult.Datapoints.member);
-        console.log("[1]")
-        console.dir(response.GetMetricStatisticsResult.Datapoints.member[1]);
-        console.log("length=" + response.GetMetricStatisticsResult.Datapoints.member.length);
-        console.log(typeof response.GetMetricStatisticsResult.Datapoints.member);
-      }
     }
   });
   }
