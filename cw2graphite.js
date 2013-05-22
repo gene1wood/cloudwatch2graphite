@@ -9,7 +9,7 @@ var awssum = require('awssum');
 var amazon = require('awssum-amazon');
 var Imd = require('awssum-amazon-imd').Imd;
 var CloudWatch = require('awssum-amazon-cloudwatch').CloudWatch;
-var security_credentials = {};
+var securityCredentials = {};
 
 if (global_options.credentials) {
  securityCredentials = {
