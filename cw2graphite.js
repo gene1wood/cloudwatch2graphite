@@ -8,25 +8,22 @@ var graphite = require('graphite');
 var awssum = require('awssum');
 var amazon = require('awssum-amazon');
 var CloudWatch = require('awssum-amazon-cloudwatch').CloudWatch;
-var securityCredentials = {};
 var getIAMCreds = require(__dirname + '/credentials.js');
 
 if (global_options.credentials) {
- securityCredentials = {
+ sighFlowControl({
     accessKeyId: global_options.credentials.accessKeyId,
     secretAccessKey: global_options.credentials.secretAccessKey,
     region: global_options.metrics_config.region
-  };
-  sighFlowControl()
+  });
 } else {
   getIAMCreds(function(err, data) {
-    securityCredentials = data;
-    sighFlowControl();
+    sighFlowControl(data);
   });
 }
 
-function sighFlowControl() {
-var cloudwatch = new CloudWatch(securityCredentials);
+function sighFlowControl(creds) {
+var cloudwatch = new CloudWatch(creds);
 var interval = global_options.metrics_config.interval_minutes;
 var metrics = global_options.metrics_config.metrics
 for(index in metrics) {
@@ -73,6 +70,7 @@ function getOneStat(metric) {
   global_options.names.forEach(function(item) {
     metric.name = metric.name.replace(item.aws_name, item.graphite_name)
   });
+
   cloudwatch.GetMetricStatistics(options, function(error, response) {
     if (error) {
       console.error("ERROR ! ",JSON.stringify(error));
