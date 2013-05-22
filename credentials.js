@@ -41,6 +41,7 @@ module.exports = function getIamCreds(cb, region) {
         // no other way exists unless we insert that via config mgmt.
         imd.Get({Version: 'latest', Category: '/meta-data/placement/availability-zone' }, function(err, data) {
           if (err) return cb(err); 
+          var region = data.Body.substr(0, data.Body.length-1);
           setRegion(region);
         });
       }
