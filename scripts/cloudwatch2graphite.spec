@@ -2,7 +2,7 @@
 
 Name:          cloudwatch2graphite
 Version:       1
-Release:       1
+Release:       2
 Summary:       Cloudwatch to Graphite
 Packager:      Gene Wood <gene@mozilla.com>
 Group:         Development/Libraries
