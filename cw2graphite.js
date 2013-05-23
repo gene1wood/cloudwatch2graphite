@@ -6,7 +6,7 @@ var global_options = require(__dirname + '/lib/options.js').readCmdOptions();
 var graphite = require('graphite');
 
 var CloudWatch = require('awssum-amazon-cloudwatch').CloudWatch;
-var getIAMCreds = require(__dirname + '/credentials.js');
+var getIAMCreds = require('awssum-iam-creds');
 
 if (global_options.credentials) {
  sighFlowControl({
